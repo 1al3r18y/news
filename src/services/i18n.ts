@@ -113,8 +113,11 @@ export async function initI18n(): Promise<void> {
 }
 
 // Helper to translate
-export function t(key: string, options?: Record<string, unknown>): string {
-  return i18next.t(key, options);
+export function t(key: string, defaultValueOrOptions?: string | Record<string, unknown>): string {
+  if (typeof defaultValueOrOptions === 'string') {
+    return i18next.t(key, { defaultValue: defaultValueOrOptions });
+  }
+  return i18next.t(key, defaultValueOrOptions);
 }
 
 // Helper to change language
