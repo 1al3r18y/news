@@ -164,8 +164,8 @@ export class UnifiedSettings {
         return;
       }
 
-      // Language select
-      if (target.closest('.unified-settings-lang-select')) {
+      // Language select (skip stream-quality which also uses the same class)
+      if (target.id === 'us-language') {
         trackLanguageChange(target.value);
         void changeLanguage(target.value);
         return;
@@ -351,9 +351,9 @@ export class UnifiedSettings {
     }
     html += `</select>`;
 
-    // Language section
-    html += `<div class="ai-flow-section-label">${t('header.languageLabel')}</div>`;
-    html += `<select class="unified-settings-lang-select">`;
+    // Language & Appearance section
+    html += `<div class="ai-flow-section-label">${t('header.languageLabel')} / اللغة والمظهر</div>`;
+    html += `<select class="unified-settings-lang-select" id="us-language">`;
     for (const lang of LANGUAGES) {
       const selected = lang.code === currentLang ? ' selected' : '';
       html += `<option value="${lang.code}"${selected}>${lang.flag} ${lang.label}</option>`;

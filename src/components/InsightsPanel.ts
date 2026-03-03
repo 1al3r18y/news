@@ -7,11 +7,10 @@ import { focalPointDetector } from '@/services/focal-point-detector';
 import { stripOrefLabels } from '@/services/oref-alerts';
 import { ingestNewsForCII } from '@/services/country-instability';
 import { getTheaterPostureSummaries } from '@/services/military-surge';
-import { isMobileDevice } from '@/utils';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { SITE_VARIANT } from '@/config';
 import { deletePersistentCache, getPersistentCache, setPersistentCache } from '@/services/persistent-cache';
-import { t } from '@/services/i18n';
+import { t, getCurrentLanguage } from '@/services/i18n';
 import { isDesktopRuntime } from '@/services/runtime';
 import { getAiFlowSettings, isAnyAiProviderEnabled, subscribeAiFlowChange } from '@/services/ai-flow-settings';
 import type { ClusteredEvent, FocalPoint, MilitaryFlight } from '@/types';
@@ -38,13 +37,8 @@ export class InsightsPanel extends Panel {
       infoTooltip: t('components.insights.infoTooltip'),
     });
 
-    if (isMobileDevice()) {
-      this.hide();
-      this.isHidden = true;
-    }
-
     // Web-only: subscribe to AI flow changes so toggling providers re-runs analysis
-    if (!isDesktopRuntime() && !isMobileDevice()) {
+    if (!isDesktopRuntime()) {
       this.aiFlowUnsubscribe = subscribeAiFlowChange((changedKey) => {
         if (changedKey === 'mapNewsFlash') return;
         void this.onAiFlowChanged();
@@ -256,8 +250,30 @@ export class InsightsPanel extends Panel {
     `);
   }
 
+  /** Translate a single text via Google Translate free endpoint */
+  private async googleTranslate(text: string, targetLang: string): Promise<string | null> {
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const data = await resp.json() as unknown[][];
+      return (data?.[0] as unknown[][])?.map((s) => (s as string[])[0]).join('') || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Translate an array of headlines if lang is not English */
+  private async translateHeadlines(headlines: string[]): Promise<string[]> {
+    const lang = getCurrentLanguage();
+    if (lang === 'en') return headlines;
+    const results = await Promise.all(
+      headlines.map(h => this.googleTranslate(h, lang).then(tr => tr || h))
+    );
+    return results;
+  }
+
   public async updateInsights(clusters: ClusteredEvent[]): Promise<void> {
-    if (this.isHidden) return;
 
     this.lastClusters = clusters;
     this.updateGeneration++;
@@ -381,7 +397,7 @@ export class InsightsPanel extends Panel {
           : '';
         const result = await generateSummary(titles, (_step, _total, msg) => {
           // Show sub-progress for summarization
-          this.setProgress(3, totalSteps, `Generating brief: ${msg}`);
+          this.setProgress(3, totalSteps, `${t('components.insights.generatingBrief', 'إنشاء الموجز')}: ${msg}`);
         }, geoContext, undefined, summarizeOpts);
 
         if (this.updateGeneration !== thisGeneration) return;
@@ -395,13 +411,13 @@ export class InsightsPanel extends Panel {
         }
       } else {
         usedCachedBrief = true;
-        this.setProgress(3, totalSteps, 'Using cached brief...');
+        this.setProgress(3, totalSteps, t('components.insights.usingCachedBrief', 'استخدام الموجز المخزن...'));
       }
 
       this.setDataBadge(worldBrief ? (usedCachedBrief ? 'cached' : 'live') : 'unavailable');
 
       // Step 4: Wait for parallel analysis to complete
-      this.setProgress(4, totalSteps, 'Multi-perspective analysis...');
+      this.setProgress(4, totalSteps, t('components.insights.multiPerspective', 'تحليل متعدد المنظورات...'));
       await parallelPromise;
 
       if (this.updateGeneration !== thisGeneration) return;
@@ -409,22 +425,29 @@ export class InsightsPanel extends Panel {
       this.renderInsights(importantClusters, sentiments, worldBrief);
     } catch (error) {
       console.error('[InsightsPanel] Error:', error);
-      this.setContent('<div class="insights-error">Analysis failed - retrying...</div>');
+      this.setContent(`<div class="insights-error">${t('components.insights.analysisFailed', 'فشل التحليل - جارٍ إعادة المحاولة...')}</div>`);
     }
   }
 
-  private renderInsights(
+  private async renderInsights(
     clusters: ClusteredEvent[],
     sentiments: Array<{ label: string; score: number }> | null,
     worldBrief: string | null
-  ): void {
+  ): Promise<void> {
+    // Translate headlines to current language
+    const originalTitles = clusters.map(c => c.primaryTitle);
+    const translatedTitles = await this.translateHeadlines(originalTitles);
+    // Also translate missed stories
+    const missedTitles = this.lastMissedStories.map(s => s.title);
+    const translatedMissed = await this.translateHeadlines(missedTitles);
+
     const briefHtml = worldBrief ? this.renderWorldBrief(worldBrief) : '';
     const focalPointsHtml = this.renderFocalPoints();
     const convergenceHtml = this.renderConvergenceZones();
     const sentimentOverview = this.renderSentimentOverview(sentiments);
-    const breakingHtml = this.renderBreakingStories(clusters, sentiments);
+    const breakingHtml = this.renderBreakingStories(clusters, sentiments, translatedTitles);
     const statsHtml = this.renderStats(clusters);
-    const missedHtml = this.renderMissedStories();
+    const missedHtml = this.renderMissedStories(translatedMissed);
 
     this.setContent(`
       ${briefHtml}
@@ -433,7 +456,7 @@ export class InsightsPanel extends Panel {
       ${sentimentOverview}
       ${statsHtml}
       <div class="insights-section">
-        <div class="insights-section-title">BREAKING & CONFIRMED</div>
+        <div class="insights-section-title">${t('components.insights.breakingConfirmed', 'عاجل ومؤكد')}</div>
         ${breakingHtml}
       </div>
       ${missedHtml}
@@ -441,9 +464,12 @@ export class InsightsPanel extends Panel {
   }
 
   private renderWorldBrief(brief: string): string {
+    const briefTitle = SITE_VARIANT === 'tech'
+      ? `🚀 ${t('components.insights.techBrief', 'موجز تقني')}`
+      : `🌍 ${t('components.insights.worldBrief', 'الموجز العالمي')}`;
     return `
       <div class="insights-brief">
-        <div class="insights-section-title">${SITE_VARIANT === 'tech' ? '🚀 TECH BRIEF' : '🌍 WORLD BRIEF'}</div>
+        <div class="insights-section-title">${briefTitle}</div>
         <div class="insights-brief-text">${escapeHtml(brief)}</div>
       </div>
     `;
@@ -451,7 +477,8 @@ export class InsightsPanel extends Panel {
 
   private renderBreakingStories(
     clusters: ClusteredEvent[],
-    sentiments: Array<{ label: string; score: number }> | null
+    sentiments: Array<{ label: string; score: number }> | null,
+    translatedTitles: string[]
   ): string {
     return clusters.map((cluster, i) => {
       const sentiment = sentiments?.[i];
@@ -461,25 +488,27 @@ export class InsightsPanel extends Panel {
       const badges: string[] = [];
 
       if (cluster.sourceCount >= 3) {
-        badges.push(`<span class="insight-badge confirmed">✓ ${cluster.sourceCount} sources</span>`);
+        badges.push(`<span class="insight-badge confirmed">✓ ${cluster.sourceCount} ${t('components.insights.sources', 'مصادر')}</span>`);
       } else if (cluster.sourceCount >= 2) {
-        badges.push(`<span class="insight-badge multi">${cluster.sourceCount} sources</span>`);
+        badges.push(`<span class="insight-badge multi">${cluster.sourceCount} ${t('components.insights.sources', 'مصادر')}</span>`);
       }
 
       if (cluster.velocity && cluster.velocity.level !== 'normal') {
         const velIcon = cluster.velocity.trend === 'rising' ? '↑' : '';
-        badges.push(`<span class="insight-badge velocity ${cluster.velocity.level}">${velIcon}+${cluster.velocity.sourcesPerHour}/hr</span>`);
+        badges.push(`<span class="insight-badge velocity ${cluster.velocity.level}">${velIcon}+${cluster.velocity.sourcesPerHour}/${t('components.insights.perHour', 'س')}</span>`);
       }
 
       if (cluster.isAlert) {
-        badges.push('<span class="insight-badge alert">⚠ ALERT</span>');
+        badges.push(`<span class="insight-badge alert">⚠ ${t('components.insights.alert', 'تنبيه')}</span>`);
       }
+
+      const title = translatedTitles[i] || cluster.primaryTitle;
 
       return `
         <div class="insight-story">
           <div class="insight-story-header">
             <span class="insight-sentiment-dot ${sentimentClass}"></span>
-            <span class="insight-story-title">${escapeHtml(cluster.primaryTitle.slice(0, 100))}${cluster.primaryTitle.length > 100 ? '...' : ''}</span>
+            <span class="insight-story-title">${escapeHtml(title.slice(0, 100))}${title.length > 100 ? '...' : ''}</span>
           </div>
           ${badges.length > 0 ? `<div class="insight-badges">${badges.join('')}</div>` : ''}
         </div>
@@ -501,13 +530,13 @@ export class InsightsPanel extends Panel {
     const neuPct = Math.round((neutral / total) * 100);
     const posPct = 100 - negPct - neuPct;
 
-    let toneLabel = 'Mixed';
+    let toneLabel = t('components.insights.toneMixed', 'مختلط');
     let toneClass = 'neutral';
     if (negative > positive + neutral) {
-      toneLabel = 'Negative';
+      toneLabel = t('components.insights.toneNegative', 'سلبي');
       toneClass = 'negative';
     } else if (positive > negative + neutral) {
-      toneLabel = 'Positive';
+      toneLabel = t('components.insights.tonePositive', 'إيجابي');
       toneClass = 'positive';
     }
 
@@ -523,7 +552,7 @@ export class InsightsPanel extends Panel {
           <span class="sentiment-label neutral">${neutral}</span>
           <span class="sentiment-label positive">${positive}</span>
         </div>
-        <div class="sentiment-tone ${toneClass}">Overall: ${toneLabel}</div>
+        <div class="sentiment-tone ${toneClass}">${t('components.insights.overall', 'الإجمالي')}: ${toneLabel}</div>
       </div>
     `;
   }
@@ -537,40 +566,41 @@ export class InsightsPanel extends Panel {
       <div class="insights-stats">
         <div class="insight-stat">
           <span class="insight-stat-value">${multiSource}</span>
-          <span class="insight-stat-label">Multi-source</span>
+          <span class="insight-stat-label">${t('components.insights.multiSource', 'متعدد المصادر')}</span>
         </div>
         <div class="insight-stat">
           <span class="insight-stat-value">${fastMoving}</span>
-          <span class="insight-stat-label">Fast-moving</span>
+          <span class="insight-stat-label">${t('components.insights.fastMoving', 'سريع التطور')}</span>
         </div>
         ${alerts > 0 ? `
         <div class="insight-stat alert">
           <span class="insight-stat-value">${alerts}</span>
-          <span class="insight-stat-label">Alerts</span>
+          <span class="insight-stat-label">${t('components.insights.alerts', 'تنبيهات')}</span>
         </div>
         ` : ''}
       </div>
     `;
   }
 
-  private renderMissedStories(): string {
+  private renderMissedStories(translatedMissedTitles?: string[]): string {
     if (this.lastMissedStories.length === 0) {
       return '';
     }
 
-    const storiesHtml = this.lastMissedStories.slice(0, 3).map(story => {
+    const storiesHtml = this.lastMissedStories.slice(0, 3).map((story, i) => {
       const topPerspective = story.perspectives
         .filter(p => p.name !== 'keywords')
         .sort((a, b) => b.score - a.score)[0];
 
       const perspectiveName = topPerspective?.name ?? 'ml';
       const perspectiveScore = topPerspective?.score ?? 0;
+      const title = translatedMissedTitles?.[i] || story.title;
 
       return `
         <div class="insight-story missed">
           <div class="insight-story-header">
             <span class="insight-sentiment-dot ml-flagged"></span>
-            <span class="insight-story-title">${escapeHtml(story.title.slice(0, 80))}${story.title.length > 80 ? '...' : ''}</span>
+            <span class="insight-story-title">${escapeHtml(title.slice(0, 80))}${title.length > 80 ? '...' : ''}</span>
           </div>
           <div class="insight-badges">
             <span class="insight-badge ml-detected">🔬 ${perspectiveName}: ${(perspectiveScore * 100).toFixed(0)}%</span>
@@ -581,7 +611,7 @@ export class InsightsPanel extends Panel {
 
     return `
       <div class="insights-section insights-missed">
-        <div class="insights-section-title">🎯 ML DETECTED</div>
+        <div class="insights-section-title">🎯 ${t('components.insights.mlDetected', 'اكتشاف الذكاء الاصطناعي')}</div>
         ${storiesHtml}
       </div>
     `;
@@ -607,14 +637,14 @@ export class InsightsPanel extends Panel {
         <div class="convergence-zone">
           <div class="convergence-region">${icons} ${escapeHtml(zone.region)}</div>
           <div class="convergence-description">${escapeHtml(zone.description)}</div>
-          <div class="convergence-stats">${zone.signalTypes.length} signal types • ${zone.totalSignals} events</div>
+          <div class="convergence-stats">${zone.signalTypes.length} ${t('components.insights.signalTypes', 'أنواع إشارات')} • ${zone.totalSignals} ${t('components.insights.events', 'أحداث')}</div>
         </div>
       `;
     }).join('');
 
     return `
       <div class="insights-section insights-convergence">
-        <div class="insights-section-title">📍 GEOGRAPHIC CONVERGENCE</div>
+        <div class="insights-section-title">📍 ${t('components.insights.geographicConvergence', 'التقارب الجغرافي')}</div>
         ${zonesHtml}
       </div>
     `;
@@ -655,7 +685,7 @@ export class InsightsPanel extends Panel {
           </div>
           <div class="focal-point-signals">${icons}</div>
           <div class="focal-point-stats">
-            ${fp.newsMentions} news • ${fp.signalCount} signals
+            ${fp.newsMentions} ${t('components.insights.news', 'أخبار')} • ${fp.signalCount} ${t('components.insights.signals', 'إشارات')}
           </div>
           ${headlineText && headlineUrl ? `<a href="${headlineUrl}" target="_blank" rel="noopener" class="focal-point-headline">"${escapeHtml(headlineText)}..."</a>` : ''}
         </div>
@@ -664,7 +694,7 @@ export class InsightsPanel extends Panel {
 
     return `
       <div class="insights-section insights-focal">
-        <div class="insights-section-title">🎯 FOCAL POINTS</div>
+        <div class="insights-section-title">🎯 ${t('components.insights.focalPoints', 'النقاط المحورية')}</div>
         ${focalPointsHtml}
       </div>
     `;

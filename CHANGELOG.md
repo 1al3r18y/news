@@ -2,6 +2,46 @@
 
 All notable changes to World Monitor are documented here.
 
+## [2.5.25] - 2026-03-03
+
+### Highlights
+
+- **Full mobile experience** — Map, Layers menu, breaking news, and intelligence badges now fully functional on mobile devices (< 768px)
+- **Arabic-first localization** — Arabic (`ar`) is now the primary default language with `dir="rtl"` applied synchronously before first paint
+- **Cairo web font** — high-quality Arabic typography via Google Fonts ('Cairo') with adjusted line-height for RTL legibility
+- **Settings modal language migration** — language selection moved exclusively into the unified Settings Window under "اللغة والمظهر (Language & Appearance)" section
+- **`language-changed` custom event** — dispatched on language switch so panels and deck.gl map can re-render dynamically
+
+### Added
+
+- Arabic set as `lng` and `fallbackLng` in i18next configuration; Arabic locale bundle loaded eagerly alongside English
+- Synchronous `lang="ar"` and `dir="rtl"` on `<html>` element in both static HTML and FOUC-prevention inline script
+- Cairo font (`wght@300;400;600;700`) injected via Google Fonts in `index.html`
+- `[dir="rtl"]` CSS variable `--font-body` updated to prioritize Cairo with `line-height: 1.8` for Arabic readability
+- Language select in Settings modal now has dedicated `id="us-language"` and bilingual section label "Language / اللغة والمظهر"
+- `language-changed` CustomEvent dispatched on `window` with `{ language }` detail payload before page reload
+- Language choice persisted to `localStorage` key `i18nextLng`
+
+### Changed
+
+- Enabled full map visibility and Layers menu functionality on mobile devices (< 768px); map displays at 45vh with panels stacking below
+- Removed mobile warning modal — mobile users now get the full desktop experience
+- Map is expanded by default on mobile (was collapsed); users can still collapse/expand via toggle button
+- Breaking news banner and intelligence gap badge now render on mobile (removed `isMobile` guards)
+- Layer toggles `z-index` raised to `10020` on mobile to ensure visibility above map canvas
+- Added `touch-action: manipulation` and `-webkit-tap-highlight-color: transparent` to layers button for reliable touch interaction
+- i18next `fallbackLng` changed from `'en'` to `'ar'`; `normalizeLanguage()` defaults to `'ar'` instead of `'en'`
+- FOUC-prevention inline script in `index.html` now reads `i18nextLng` from localStorage and applies `lang`/`dir` attributes before first paint
+- Removed stale `.lang-select` RTL override CSS (no longer used in header)
+
+### Fixed
+
+- Added missing Arabic i18n translation keys: `header.downloadApp` (تحميل التطبيق), `components.map.showMap` (إظهار الخريطة), `components.webcams.paused` (الكاميرا متوقفة), `panels.worldClock` (الساعة العالمية)
+- Fixed mobile `.map-container` using `height:0; overflow:hidden` instead of `display:none` when collapsed, so `position:fixed` layer toggles can still render
+- Fixed WebGL RTL text rendering for Arabic map labels using MapLibre RTL plugin (`@mapbox/mapbox-gl-rtl-text@0.2.3`) with `getRTLTextPluginStatus()` guard and deferred loading
+- Added `arabic-reshaper` text shaping utility (`src/utils/arabic-text.ts`) for deck.gl `TextLayer` labels — converts Arabic characters to joined presentation forms and reverses for correct LTR WebGL rendering
+- Wired `reshapeArabic()` into tech-HQ cluster label `TextLayer` to prevent disconnected Arabic glyphs
+
 ## [2.5.24] - 2026-03-03
 
 ### Highlights

@@ -1088,3 +1088,146 @@ tr.diag-err td { color: var(--settings-red); }
     flex-wrap: wrap;
   }
 }
+
+/* Mobile: sidebar becomes horizontal scroll tabs */
+@media (max-width: 600px) {
+  .settings-main {
+    flex-direction: column;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--settings-border);
+    flex-shrink: 0;
+    max-height: none;
+  }
+
+  .settings-sidebar-search {
+    padding: 8px;
+  }
+
+  .settings-sidebar-search input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .settings-sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 8px;
+    gap: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-nav-item {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    white-space: nowrap;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+
+  .settings-nav-item.active::before {
+    display: none;
+  }
+
+  .settings-nav-item.active {
+    background: rgba(96, 165, 250, 0.15);
+  }
+
+  .settings-nav-sep {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+  }
+
+  .settings-content {
+    padding: 16px;
+  }
+
+  .settings-section-header h2 {
+    font-size: 16px;
+  }
+
+  .settings-footer {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+
+  .settings-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+    min-width: 60px;
+  }
+
+  .settings-header {
+    padding: 10px 16px;
+  }
+
+  .settings-header-title {
+    font-size: 13px;
+  }
+
+  .settings-feat-header {
+    padding: 10px 12px;
+  }
+
+  .settings-feat-name {
+    font-size: 12px;
+  }
+
+  .settings-feat-desc {
+    font-size: 10px;
+  }
+
+  .debug-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .debug-actions button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .wm-key-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wm-register-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wm-submit-btn {
+    width: 100%;
+  }
+
+  .diag-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .diag-traffic-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .diag-table {
+    font-size: 10px;
+  }
+
+  .diag-table td {
+    max-width: 150px;
+  }
+}

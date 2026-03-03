@@ -397,24 +397,20 @@ export class App {
     this.state.signalModal.setLocationClickHandler((lat, lon) => {
       this.state.map?.setCenter(lat, lon, 4);
     });
-    if (!this.state.isMobile) {
-      this.state.findingsBadge = new IntelligenceGapBadge();
-      this.state.findingsBadge.setOnSignalClick((signal) => {
-        if (this.state.countryBriefPage?.isVisible()) return;
-        if (localStorage.getItem('wm-settings-open') === '1') return;
-        this.state.signalModal?.showSignal(signal);
-      });
-      this.state.findingsBadge.setOnAlertClick((alert) => {
-        if (this.state.countryBriefPage?.isVisible()) return;
-        if (localStorage.getItem('wm-settings-open') === '1') return;
-        this.state.signalModal?.showAlert(alert);
-      });
-    }
+    this.state.findingsBadge = new IntelligenceGapBadge();
+    this.state.findingsBadge.setOnSignalClick((signal) => {
+      if (this.state.countryBriefPage?.isVisible()) return;
+      if (localStorage.getItem('wm-settings-open') === '1') return;
+      this.state.signalModal?.showSignal(signal);
+    });
+    this.state.findingsBadge.setOnAlertClick((alert) => {
+      if (this.state.countryBriefPage?.isVisible()) return;
+      if (localStorage.getItem('wm-settings-open') === '1') return;
+      this.state.signalModal?.showAlert(alert);
+    });
 
-    if (!this.state.isMobile) {
-      initBreakingNewsAlerts();
-      this.state.breakingBanner = new BreakingNewsBanner();
-    }
+    initBreakingNewsAlerts();
+    this.state.breakingBanner = new BreakingNewsBanner();
 
     // Phase 3: UI setup methods
     this.eventHandlers.startHeaderClock();

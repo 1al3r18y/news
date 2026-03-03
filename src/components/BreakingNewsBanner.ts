@@ -1,7 +1,7 @@
 import type { BreakingAlert } from '@/services/breaking-news-alerts';
 import { getAlertSettings } from '@/services/breaking-news-alerts';
 import { getSourcePanelId } from '@/config/feeds';
-import { t } from '@/services/i18n';
+import { t, getCurrentLanguage } from '@/services/i18n';
 
 const MAX_ALERTS = 3;
 const CRITICAL_DISMISS_MS = 60_000;
@@ -96,24 +96,12 @@ export class BreakingNewsBanner {
   }
 
   private updatePosition(): void {
-    let top = 50;
-    if (document.body?.classList.contains('has-critical-banner')) {
-      this.attachResizeObserverIfNeeded();
-      const postureBanner = document.querySelector('.critical-posture-banner');
-      if (postureBanner) {
-        top += postureBanner.getBoundingClientRect().height;
-      }
-    }
-    this.container.style.top = `${top}px`;
+    // Banner is now centered via CSS (top:50% left:50% transform), no manual offset needed
     this.updateOffset();
   }
 
   private updateOffset(): void {
-    const height = this.container.offsetHeight;
-    document.documentElement.style.setProperty(
-      '--breaking-alert-offset',
-      height > 0 ? `${height}px` : '0px'
-    );
+    // No longer push content down — banner floats in center
     document.body?.classList.toggle('has-breaking-alert', this.activeAlerts.length > 0);
   }
 
@@ -167,6 +155,28 @@ export class BreakingNewsBanner {
     this.activeAlerts.push(active);
     this.playSound();
     this.updateOffset();
+
+    // Auto-translate headline if current language is not English
+    const lang = getCurrentLanguage();
+    if (lang !== 'en') {
+      void this.translateAlertHeadline(active, lang);
+    }
+  }
+
+  private async translateAlertHeadline(active: ActiveAlert, targetLang: string): Promise<void> {
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(active.alert.headline)}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const data = await resp.json() as unknown[][];
+      const translated = (data?.[0] as unknown[][])?.map((s) => (s as string[])[0]).join('');
+      if (translated) {
+        const headlineEl = active.element.querySelector('.breaking-alert-headline');
+        if (headlineEl) headlineEl.textContent = translated;
+      }
+    } catch {
+      // Keep original headline on failure
+    }
   }
 
   private resolveTargetPanel(alert: BreakingAlert): string {
@@ -291,6 +301,5 @@ export class BreakingNewsBanner {
     this.activeAlerts = [];
     this.container.remove();
     document.body.classList.remove('has-breaking-alert');
-    document.documentElement.style.removeProperty('--breaking-alert-offset');
   }
 }

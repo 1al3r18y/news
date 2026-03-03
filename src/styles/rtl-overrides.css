@@ -1,13 +1,5 @@
 /* RTL overrides for Arabic (dir="rtl") — targeted fixes only */
 
-/* Language selector: flip arrow and margins */
-[dir="rtl"] .lang-select {
-  padding: 4px 6px 4px 24px;
-  background-position: left 8px center;
-  margin-right: 0;
-  margin-left: 8px;
-}
-
 /* Header element margins */
 [dir="rtl"] .variant-switcher {
   margin-right: 0;
@@ -122,4 +114,169 @@
 [dir="rtl"] .sources-counter {
   margin-right: auto;
   margin-left: 12px;
+}
+
+/* ── RTL Mobile Overrides ── */
+
+/* Header left/right swap for RTL */
+[dir="rtl"] .header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .header-left {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .header-right {
+  flex-direction: row-reverse;
+}
+
+/* Breaking news banner RTL */
+[dir="rtl"] .breaking-alert {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .breaking-alert-content {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .breaking-alert-headline {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Region selector RTL */
+[dir="rtl"] .region-select {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Layers toggle button RTL */
+[dir="rtl"] .layers-toggle-btn {
+  direction: rtl;
+}
+
+/* Layer toggles dropdown RTL */
+[dir="rtl"] .deckgl-layer-toggles {
+  left: auto;
+  right: 10px;
+}
+
+@media (max-width: 768px) {
+  [dir="rtl"] .deckgl-layer-toggles {
+    left: 10px;
+    right: 10px;
+  }
+}
+
+[dir="rtl"] .deckgl-layer-toggles .layer-toggle {
+  direction: rtl;
+  flex-direction: row-reverse;
+}
+
+/* Map controls position flip for RTL */
+[dir="rtl"] .map-controls {
+  right: auto;
+  left: 8px;
+}
+
+/* Map collapse button margin flip */
+[dir="rtl"] .map-collapse-btn {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Panel header RTL */
+[dir="rtl"] .panel-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .panel-header-left {
+  flex-direction: row-reverse;
+}
+
+/* Telegram intel items RTL border */
+[dir="rtl"] .telegram-intel-item {
+  border-left: none;
+  border-right: 2px solid transparent;
+}
+
+[dir="rtl"] .telegram-intel-item:hover {
+  border-left-color: transparent;
+  border-right-color: var(--accent);
+}
+
+[dir="rtl"] .telegram-intel-time {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Settings window RTL overrides */
+[dir="rtl"] .settings-sidebar {
+  border-right: none;
+  border-left: 1px solid var(--settings-border);
+}
+
+[dir="rtl"] .settings-nav-item {
+  text-align: right;
+}
+
+[dir="rtl"] .settings-nav-item.active::before {
+  left: auto;
+  right: 0;
+  border-radius: 2px 0 0 2px;
+}
+
+[dir="rtl"] .settings-ov-cat.ov-cat-ok,
+[dir="rtl"] .settings-ov-cat.ov-cat-partial,
+[dir="rtl"] .settings-ov-cat.ov-cat-warn {
+  border-left: none;
+  border-right-width: 3px;
+  border-right-style: solid;
+}
+
+[dir="rtl"] .settings-ov-cat.ov-cat-ok { border-right-color: var(--settings-green); }
+[dir="rtl"] .settings-ov-cat.ov-cat-partial { border-right-color: var(--settings-yellow); }
+[dir="rtl"] .settings-ov-cat.ov-cat-warn { border-right-color: var(--settings-red); }
+
+[dir="rtl"] .settings-feat {
+  border-left: none;
+  border-right: 3px solid var(--settings-border);
+}
+
+[dir="rtl"] .settings-feat.ready { border-right-color: var(--settings-green); }
+[dir="rtl"] .settings-feat.staged { border-right-color: var(--settings-blue); }
+[dir="rtl"] .settings-feat.needs { border-right-color: var(--settings-yellow); }
+
+[dir="rtl"] .settings-secret-link {
+  right: auto;
+  left: 4px;
+}
+
+/* ── Mobile-specific RTL ── */
+@media (max-width: 768px) {
+  [dir="rtl"] .map-controls {
+    left: calc(env(safe-area-inset-left, 0px) + 8px);
+    right: auto;
+  }
+
+  [dir="rtl"] .time-slider {
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
+    left: calc(env(safe-area-inset-left, 0px) + 56px);
+  }
+}
+
+@media (max-width: 480px) {
+  [dir="rtl"] .community-widget {
+    right: 12px;
+    left: 12px;
+    align-items: stretch;
+  }
+
+  [dir="rtl"] .header-left,
+  [dir="rtl"] .header-center,
+  [dir="rtl"] .header-right {
+    flex-direction: row-reverse;
+    justify-content: center;
+  }
 }

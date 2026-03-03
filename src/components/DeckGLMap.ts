@@ -47,6 +47,7 @@ import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import type { WeatherAlert } from '@/services/weather';
 import { escapeHtml } from '@/utils/sanitize';
 import { tokenizeForMatch, matchKeyword, matchesAnyKeyword, findMatchingKeywords } from '@/utils/keyword-match';
+import { reshapeArabic } from '@/utils/arabic-text';
 import { t } from '@/services/i18n';
 import { debounce, rafSchedule, getCurrentTheme } from '@/utils/index';
 import {
@@ -147,7 +148,7 @@ const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; z
 const MAP_INTERACTION_MODE: MapInteractionMode =
   import.meta.env.VITE_MAP_INTERACTION_MODE === 'flat' ? 'flat' : '3d';
 
-// Theme-aware basemap vector style URLs (English labels, no local scripts)
+// Theme-aware basemap vector style URLs
 // Happy variant uses self-hosted warm styles; default uses CARTO CDN
 const DARK_STYLE = SITE_VARIANT === 'happy'
   ? '/map-styles/happy-dark.json'
@@ -2215,7 +2216,7 @@ export class DeckGLMap {
         layers.push(new TextLayer<MapTechHQCluster>({
           id: 'tech-hq-clusters-label',
           data: singles,
-          getText: d => d.items[0]?.company ?? '',
+          getText: d => reshapeArabic(d.items[0]?.company ?? ''),
           getPosition: d => [d.lon, d.lat],
           getSize: 11,
           getColor: [220, 220, 220, 200],

@@ -59,7 +59,8 @@
 }
 
 [dir="rtl"] {
-  --font-body: 'Geeza Pro', 'SF Arabic', 'Tahoma', system-ui, sans-serif;
+  --font-body: 'Cairo', 'Geeza Pro', 'SF Arabic', 'Tahoma', system-ui, sans-serif;
+  line-height: 1.8;
 }
 
 :lang(zh-CN),
@@ -552,6 +553,7 @@ canvas,
 .region-selector {
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
 .region-select {
@@ -575,6 +577,32 @@ canvas,
 .region-select:focus {
   outline: none;
   border-color: var(--green);
+}
+
+/* Layers toggle button - matches region-select style */
+.layers-toggle-btn {
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 100;
+}
+
+.layers-toggle-btn:hover {
+  border-color: var(--green);
+}
+
+.layers-toggle-btn.active {
+  border-color: var(--green);
+  color: var(--green);
 }
 
 .header-center {
@@ -9345,9 +9373,35 @@ a.prediction-link:hover {
     display: none !important;
   }
 
-  /* Hide layer toggle buttons on mobile - use fixed layers */
-  .layer-toggles {
+  /* Layer toggles: hidden on mobile, shown via header button */
+  .deckgl-layer-toggles {
     display: none !important;
+    position: fixed;
+    top: 80px;
+    left: 10px;
+    right: 10px;
+    bottom: auto;
+    max-width: none;
+    max-height: 60vh;
+    z-index: 10020;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .deckgl-layer-toggles.layers-dropdown-open {
+    display: flex !important;
+  }
+
+  .deckgl-layer-toggles .toggle-list {
+    max-height: 55vh !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .deckgl-layer-toggles .layer-toggle {
+    min-height: 40px;
+    touch-action: manipulation;
   }
 
   /* Single-column panel layout on mobile */
@@ -9377,11 +9431,21 @@ a.prediction-link:hover {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Make map section smaller on mobile to show panels */
+  /* Map always visible on mobile at 45vh */
   .map-section {
-    height: 40vh !important;
-    min-height: 250px !important;
+    height: 45vh !important;
+    min-height: 220px !important;
     max-height: 50vh !important;
+    display: flex !important;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .map-section .map-container {
+    display: block !important;
+    flex: 1;
+    position: relative;
+    min-height: 0;
   }
 
   /* Collapsed map on mobile — higher specificity overrides .map-section above */
@@ -9391,7 +9455,16 @@ a.prediction-link:hover {
     max-height: none !important;
   }
 
-  .main-content .map-section.collapsed .map-container,
+  .main-content .map-section.collapsed .map-container {
+    /* Use height:0 + overflow:hidden instead of display:none so that
+       position:fixed children (layer toggles) can still render. */
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
   .main-content .map-section.collapsed .map-resize-handle,
   .main-content .map-section.collapsed .map-controls,
   .main-content .map-section.collapsed .time-slider,
@@ -9547,25 +9620,166 @@ a.prediction-link:hover {
     cursor: pointer;
     pointer-events: auto;
   }
+
+  /* Header adjustments for mobile */
+  .header {
+    height: auto;
+    padding: 6px 10px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .header-left {
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .logo {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .variant-switcher {
+    order: 2;
+  }
+
+  /* Region selector goes to second row on mobile */
+  .region-selector {
+    order: 3;
+    flex-grow: 1;
+    display: flex;
+    gap: 4px;
+  }
+
+  .region-select {
+    flex: 1;
+    font-size: 12px;
+    min-height: 36px;
+  }
+
+  .layers-toggle-btn {
+    font-size: 12px;
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+
+  .status-indicator {
+    order: 1;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  /* Search button takes available width */
+  .search-btn {
+    flex: 1;
+    justify-content: center;
+    font-size: 12px;
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+
+  /* Theme toggle bigger for touch */
+  .theme-toggle-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Breaking news banner mobile — compact top strip, not centered card */
+  .breaking-news-container {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    transform: none;
+    max-width: 100vw;
+    width: 100vw;
+    z-index: 10010;
+    gap: 4px;
+    padding: 0 6px;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  .breaking-alert {
+    padding: 8px 10px;
+    gap: 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .breaking-alert-icon {
+    font-size: 16px;
+  }
+
+  .breaking-alert-content {
+    gap: 2px;
+  }
+
+  .breaking-alert-level {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+
+  .breaking-alert-headline {
+    font-size: 12px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .breaking-alert-meta {
+    font-size: 9px;
+  }
+
+  .breaking-alert-dismiss {
+    padding: 4px 8px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 14px;
+    border-radius: 4px;
+    align-self: center;
+  }
+
+  /* Community widget on mobile */
+  .community-widget {
+    bottom: 16px;
+    right: 12px;
+    left: auto;
+  }
+
+  .cw-pill {
+    border-radius: 22px;
+    padding: 6px 6px 6px 14px;
+    gap: 8px;
+  }
+
+  .cw-text {
+    font-size: 12px;
+  }
+
+  /* Update toast mobile positioning */
+  .update-toast {
+    right: 8px;
+    left: 8px;
+    max-width: none;
+  }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
-  .layer-toggles {
-    max-height: 80px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .layer-toggle {
-    flex-shrink: 0;
-    padding: 6px 10px;
-    font-size: 9px;
-    min-width: 50px;
-  }
-
   .map-popup {
     left: 10px !important;
     right: 10px !important;
@@ -9582,6 +9796,7 @@ a.prediction-link:hover {
   .header {
     flex-wrap: wrap;
     padding: 8px;
+    height: auto;
   }
 
   .header-left,
@@ -9600,6 +9815,94 @@ a.prediction-link:hover {
   .copy-link-btn,
   .download-wrapper {
     display: none;
+  }
+
+  /* Logo shrink on very small screens */
+  .logo {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Variant switcher compact on xs */
+  .variant-switcher {
+    padding: 1px 2px;
+    gap: 1px;
+  }
+
+  .variant-option {
+    padding: 2px 4px;
+    font-size: 8px;
+  }
+
+  .variant-option .variant-icon {
+    font-size: 10px;
+  }
+
+  /* Region selector full width on xs */
+  .region-selector {
+    flex-basis: 100%;
+    margin-top: 4px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .region-select {
+    flex: 1;
+  }
+
+  .layers-toggle-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+    min-height: 32px;
+  }
+
+  /* Community widget adjustments for xs */
+  .community-widget {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    align-items: stretch;
+  }
+
+  .cw-pill {
+    padding: 6px 6px 6px 12px;
+    gap: 6px;
+    border-radius: 20px;
+  }
+
+  .cw-text {
+    font-size: 11px;
+  }
+
+  .cw-cta {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  /* Breaking news compact on xs */
+  .breaking-news-container {
+    top: 44px;
+    padding: 0 4px;
+  }
+
+  .breaking-alert {
+    padding: 6px 8px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .breaking-alert-icon {
+    font-size: 14px;
+  }
+
+  .breaking-alert-headline {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+
+  .breaking-alert-level {
+    font-size: 8px;
+    padding: 1px 4px;
   }
 }
 
@@ -12516,7 +12819,7 @@ a.prediction-link:hover {
   font-weight: bold;
 }
 
-/* deck.gl Layer Toggles */
+/* deck.gl Layer Toggles — hidden by default, shown via الطبقات button */
 .deckgl-layer-toggles {
   position: absolute;
   bottom: 10px;
@@ -12527,10 +12830,14 @@ a.prediction-link:hover {
   border-radius: 4px;
   max-width: 260px;
   max-height: 50vh;
-  display: flex;
+  display: none;
   flex-direction: column;
   overflow: hidden;
   flex-wrap: nowrap;
+}
+
+.deckgl-layer-toggles.layers-dropdown-open {
+  display: flex;
 }
 
 .deckgl-layer-toggles .toggle-header {
@@ -13886,62 +14193,73 @@ body.has-critical-banner .panels-grid {
 
 /* ============ Breaking News Alert Banner ============ */
 
+/* ============ Breaking News Alert — Centered Floating Card ============ */
 .breaking-news-container {
   position: fixed;
-  top: 50px;
-  left: 0;
-  right: 0;
-  z-index: 1001;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10010;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
   pointer-events: none;
+  max-width: 680px;
+  width: 90vw;
 }
 
 .breaking-alert {
   pointer-events: auto;
-  padding: 8px 16px;
+  padding: 14px 20px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  animation: banner-slide-in 0.3s ease-out;
+  align-items: flex-start;
+  gap: 14px;
+  animation: breaking-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .breaking-alert.severity-critical {
-  background: linear-gradient(90deg, #8B0000, #DC143C);
-  border-bottom: 2px solid var(--semantic-critical);
+  background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(220, 20, 60, 0.95));
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  box-shadow: 0 8px 40px rgba(220, 20, 60, 0.35), 0 0 60px rgba(220, 20, 60, 0.15), 0 0 0 1px rgba(255,80,80,0.3);
 }
 
 .breaking-alert.severity-high {
-  background: linear-gradient(90deg, var(--semantic-high, #c2410c), #b45309);
-  border-bottom: 2px solid var(--semantic-high, #c2410c);
+  background: linear-gradient(135deg, rgba(194, 65, 12, 0.95), rgba(180, 83, 9, 0.95));
+  border: 1px solid rgba(255, 160, 60, 0.4);
+  box-shadow: 0 8px 40px rgba(194, 65, 12, 0.3), 0 0 0 1px rgba(255,160,60,0.3);
 }
 
 .breaking-alert-icon {
-  font-size: 18px;
+  font-size: 24px;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .breaking-alert-content {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 .breaking-alert-level {
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.5px;
-  padding: 1px 6px;
-  background: var(--overlay-heavy);
-  border-radius: 3px;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
   flex-shrink: 0;
+  align-self: flex-start;
+  text-transform: uppercase;
 }
 
 .breaking-alert.severity-critical .breaking-alert-level {
@@ -13949,37 +14267,47 @@ body.has-critical-banner .panels-grid {
 }
 
 .breaking-alert-headline {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .breaking-alert-meta {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .breaking-alert-dismiss {
-  background: var(--overlay-heavy);
-  border: none;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: white;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   flex-shrink: 0;
+  transition: background 0.15s;
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 .breaking-alert-dismiss:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
 }
 
-body.has-breaking-alert .panels-grid {
-  margin-top: var(--breaking-alert-offset, 0px);
-  transition: margin-top 0.3s ease;
+@keyframes breaking-pop-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -16126,6 +16454,13 @@ body.has-breaking-alert .panels-grid {
   align-items: flex-end;
   gap: 6px;
   animation: cw-float-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* RTL: community widget anchors to the left */
+[dir="rtl"] .community-widget {
+  right: auto;
+  left: 24px;
+  align-items: flex-start;
 }
 
 .community-widget.cw-hiding {

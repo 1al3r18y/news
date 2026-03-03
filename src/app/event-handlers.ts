@@ -513,10 +513,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupMobileWarning(): void {
-    if (MobileWarningModal.shouldShow()) {
-      this.ctx.mobileWarningModal = new MobileWarningModal();
-      this.ctx.mobileWarningModal.show();
-    }
+    // Mobile warning modal disabled — full mobile experience enabled
   }
 
   setupStatusPanel(): void {
