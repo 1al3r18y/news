@@ -16,7 +16,7 @@ import { getAiFlowSettings, isAnyAiProviderEnabled, subscribeAiFlowChange } from
 import type { ClusteredEvent, FocalPoint, MilitaryFlight } from '@/types';
 
 export class InsightsPanel extends Panel {
-  private isHidden = false;
+  private _isHidden = false;
   private lastBriefUpdate = 0;
   private cachedBrief: string | null = null;
   private lastMissedStories: AnalyzedHeadline[] = [];
