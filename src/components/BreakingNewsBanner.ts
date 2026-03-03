@@ -84,6 +84,7 @@ export class BreakingNewsBanner {
     });
   }
 
+  // @ts-expect-error reserved for future use
   private attachResizeObserverIfNeeded(): void {
     const postureBanner = document.querySelector('.critical-posture-banner');
     if (!postureBanner) return;

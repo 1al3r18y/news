@@ -6,7 +6,6 @@ import type { DashboardSnapshot } from '@/services/storage';
 import {
   PlaybackControl,
   StatusPanel,
-  MobileWarningModal,
   PizzIntIndicator,
   CIIPanel,
   PredictionPanel,
